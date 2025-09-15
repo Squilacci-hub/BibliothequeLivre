@@ -22,8 +22,14 @@ public class DemandeEmpruntService {
     private final DemandeEmpruntRepository repository;
     private final EmpruntRepository empruntRepository;
     private final LivreRepository livreRepository;
+    private final AbonnementService abonnementService;
 
     public void creerDemande(Adherent adherent, Livre livre, DemandeEmprunt.TypeAction typeAction, LocalDate dateAction) {
+        // Vérification de l'abonnement en premier
+        if (!abonnementService.verifierAbonnementValide(adherent.getId())) {
+            throw new RuntimeException("Votre abonnement n'est pas valide");
+        }
+
         if (adherent.getDateDeblocage() != null && adherent.getDateDeblocage().isAfter(LocalDate.now())) {
             throw new RuntimeException("Vous êtes bloqué jusqu'au " + adherent.getDateDeblocage() + ". Vous ne pouvez pas emprunter de livre.");
         }
@@ -40,15 +46,11 @@ public class DemandeEmpruntService {
             throw new RuntimeException("Une demande est déjà en cours pour ce livre");
         }
 
-        if (!abonnementService.verifierAbonnementValide(adherent.getId())) {
-        throw new RuntimeException("Votre abonnement n'est pas valide");
-    }   
-
         DemandeEmprunt demande = DemandeEmprunt.builder()
             .adherent(adherent)
             .livre(livre)
             .typeAction(typeAction)
-            .dateDemande(dateAction) // Utiliser la date passée en paramètre
+            .dateDemande(dateAction)
             .build();
 
         repository.save(demande);
